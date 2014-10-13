@@ -78,7 +78,7 @@ namespace mongo {
 
     // -------  Shard --------
 
-    int Chunk::MaxChunkSize = 1024 * 1024 * 64;
+    long long Chunk::MaxChunkSize = 1024 * 1024 * 64;
     int Chunk::MaxObjectPerChunk = 250000;
 
     // Can be overridden from command line
@@ -271,7 +271,10 @@ namespace mongo {
         conn.done();
     }
 
-    void Chunk::pickSplitVector( vector<BSONObj>& splitPoints , int chunkSize /* bytes */, int maxPoints, int maxObjs ) const {
+    void Chunk::pickSplitVector(vector<BSONObj>& splitPoints,
+                                long long chunkSize /* bytes */,
+                                int maxPoints,
+                                int maxObjs) const {
         // Ask the mongod holding this chunk to figure out the split points.
         ScopedDbConnection conn(getShard().getConnString());
         BSONObj result;
@@ -310,7 +313,14 @@ namespace mongo {
                 splitPoints->push_back( medianKey );
         }
         else {
-            pickSplitVector( *splitPoints, Chunk::MaxChunkSize, 0, MaxObjectPerChunk );
+            long long chunkSize = _manager->getCurrentDesiredChunkSize();
+
+            if (_dataWritten / chunkSize > 5) {
+                // chunkSize is too small, so re-adjust
+                chunkSize = min(_dataWritten, Chunk::MaxChunkSize);
+            }
+
+            pickSplitVector(*splitPoints, chunkSize, 0, MaxObjectPerChunk);
 
             if ( splitPoints->size() <= 1 ) {
                 // no split points means there isn't enough data to split on
@@ -1660,7 +1670,7 @@ namespace mongo {
 
         return splitThreshold;
     }
-    
+
     /** This is for testing only, just setting up minimal basic defaults. */
     ChunkManager::ChunkManager() :
     _unique(),
