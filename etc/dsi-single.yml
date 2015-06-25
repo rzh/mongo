@@ -196,13 +196,13 @@ buildvariants:
     setup: standalone
 
   run_on:
-  - "centos6-perf"
+    - "ubuntu1404-test"
   tasks:
-  - name: bringup_cluster
-  - name: config_standalone
-  - name: run_ycsb
-  - name: config_standalone
-  - name: run_hammer
+    - name: bringup_cluster
+    - name: config_standalone
+    - name: run_ycsb
+    - name: config_standalone
+    - name: run_hammer
 
 - name: linux-wt-repl
   display_name: Linux WT 1-Node ReplSet
@@ -211,11 +211,11 @@ buildvariants:
     setup: replica
 
   run_on:
-  - "centos6-perf"
+    - "ubuntu1404-test"
   tasks:
-  - name: config_single_member_replica
-  - name: run_ycsb
-  - name: config_single_member_replica
-  - name: run_hammer
-  - name: destroy_cluster
+    - name: config_single_member_replica
+    - name: run_ycsb
+    - name: config_single_member_replica
+    - name: run_hammer
+    - name: destroy_cluster
 
