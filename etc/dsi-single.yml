@@ -1,0 +1,221 @@
+stepback: false
+
+pre:
+    - command: shell.track
+
+post:
+    - command: shell.cleanup
+
+functions:
+  "bring up cluster":
+    - command: shell.exec
+      params:
+        script: |
+          rm -rf ./*
+          mkdir src
+    - command: shell.exec
+      # checkout dsi code
+      params:
+        working_dir: src
+        script: |
+          set -e 
+          set -v
+          git clone https://github.com/rzh/dsi
+          cd dsi
+          # install terraform
+          mkdir keys
+          mkdir terraform
+          cd terraform
+          wget https://github.com/rzh/dsi/releases/download/t0.5.3/terraform_0.5.3_linux_amd64.zip -O temp.zip
+          unzip temp.zip
+          rm temp.zip
+          # install workload wrapper
+          cd ../bin
+          wget --no-check-certificate  https://github.com/rzh/mc/releases/download/r0.0.1/mc.tar.gz -O - | tar zxv
+    - command: shell.exec
+      # bring up the cluster
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          set -e 
+          set -o verbose
+          # to create single mongod EC2 cluster
+          cd ./clusters/single
+          cp ../../terraform/* .
+          # stage aws credential for terraform
+          ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://s3.amazonaws.com/mciupload/dsi/${build_variant}/${revision}/mongod-${build_id}
+          # generate aws private key file
+          echo ${ec2_pem} > ../../keys/aws.pem
+          # create all resources and instances
+          ./terraform apply
+          # this will extract all public and private IP address information
+          ./env.sh
+          echo "EC2 Cluster STARTED."
+  "configure mongodb single member replica cluster":
+    - command: shell.exec
+      # bring up the mongod
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          set -e 
+          set -o verbose
+          cd ./clusters/single
+          # configure mongodb cluster with wiredTiger
+          ../../bin/config-single-replica.sh mongodb wiredTiger
+          echo "Single MongoDB Replica Cluster STARTED."
+  "configure standalone mongodb":
+    - command: shell.exec
+      # bring up the mongod
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          set -e 
+          set -o verbose
+          cd ./clusters/single
+          # configure mongodb cluster with wiredTiger
+          ../../bin/config-standalone.sh mongodb wiredTiger
+          echo "Standalone MongoDB STARTED."
+  "run ycsb tests":
+    - command: shell.exec
+      params:
+        working_dir: dsi
+        script: |
+          set -e
+          set -v
+          cd ./clusters/single
+          # run ycsb test
+          ./bin/mc -config single-ycsb.json -run ycsb-run-${setup} -o perf.json 
+    - command: "json.send"
+      params:
+        name: "dsi"
+        file: "src/clusters/single/perf.json"
+  "run hammer tests":
+    - command: shell.exec
+      params:
+        working_dir: dsi
+        script: |
+          set -e
+          set -v
+          cd ./clusters/single
+          # run hammer test
+          ./bin/mc -config single-hammer.json -run hammer-run-${setup} -o perf.json 
+    - command: "json.send"
+      params:
+        name: "dsi"
+        file: "src/clusters/single/perf.json"
+  "destroy cluster":
+    - command: shell.exec
+      # destroy the cluster
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          set -e 
+          set -o verbose
+          cd ./clusters/single
+          # configure mongodb cluster with wiredTiger
+          yes yes | ./terraform destroy
+          echo "Cluster DESTROYED."
+tasks:
+- name: compile
+  commands:
+    - command: git.get_project
+      params:
+        directory: src
+    - command: git.apply_patch
+      params:
+        directory: src
+    - command: shell.exec
+      params:
+        working_dir: src
+        script: |
+          set -o errexit
+          set -o verbose
+          ${scons|scons} ${compile_flags|} mongo
+          ${scons|scons} ${compile_flags|} mongod
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/mongod
+        remote_file: dsi/${build_variant}/${revision}/mongod-${build_id}
+        bucket: mciuploads
+        permissions: public-read
+        content_type: ${content_type|application/octet-stream}
+        display_name: mongod
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/mongo
+        remote_file: dsi/${build_variant}/${revision}/mongo-${build_id}
+        bucket: mciuploads
+        permissions: public-read
+        content_type: ${content_type|application/octet-stream}
+        display_name: mongo
+
+- name: bringup_cluster
+  depends_on:
+  - name: compile
+  commands:
+    - func: "bring up cluster"
+- name: config_single_member_replica
+  depends_on:
+    - name: bringup_cluster
+  commands:
+    - func: "configure mongodb single member replica cluster"
+- name: config_standalone
+  depends_on:
+    - name: bringup_cluster
+  commands:
+    - func: "configure standalone mongodb"
+- name: run_ycsb
+  depends_on:
+    - name: bringup_cluster
+  commands:
+    - func: "run ycsb tests"
+- name: run_hammer
+  depends_on:
+    - name: bringup_cluster
+  commands:
+    - func: "run hammer tests"
+- name: destroy_cluster
+  depends_on:
+    - name: bringup_cluster
+  commands:
+    - func: "destroy cluster"
+
+buildvariants:
+- name: linux-wt-standalone
+  display_name: Linux WT Standalone
+  expansions:
+    compile_flags: -j$(grep -c ^processor /proc/cpuinfo) CC=/opt/mongodbtoolchain/bin/gcc CXX=/opt/mongodbtoolchain/bin/g++ --release
+    setup: standalone
+
+  run_on:
+  - "centos6-perf"
+  tasks:
+  - name: bringup_cluster
+  - name: config_standalone
+  - name: run_ycsb
+  - name: config_standalone
+  - name: run_hammer
+
+- name: linux-wt-repl
+  display_name: Linux WT 1-Node ReplSet
+  expansions:
+    compile_flags: -j$(grep -c ^processor /proc/cpuinfo) CC=/opt/mongodbtoolchain/bin/gcc CXX=/opt/mongodbtoolchain/bin/g++ --release
+    setup: replica
+
+  run_on:
+  - "centos6-perf"
+  tasks:
+  - name: config_single_member_replica
+  - name: run_ycsb
+  - name: config_single_member_replica
+  - name: run_hammer
+  - name: destroy_cluster
+
