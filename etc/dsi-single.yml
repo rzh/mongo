@@ -16,7 +16,7 @@ functions:
     - command: shell.exec
       # checkout dsi code
       params:
-        working_dir: src
+        working_dir: .
         script: |
           set -e 
           set -v
@@ -46,7 +46,8 @@ functions:
           # stage aws credential for terraform
           ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://s3.amazonaws.com/mciupload/dsi/${build_variant}/${revision}/mongod-${build_id}
           # generate aws private key file
-          echo ${ec2_pem} > ../../keys/aws.pem
+          echo "${ec2_pem}" > ../../keys/aws.pem
+          chmod 400 ../../keys/aws.pem
           # create all resources and instances
           ./terraform apply
           # this will extract all public and private IP address information
@@ -159,7 +160,7 @@ tasks:
 
 - name: bringup_cluster
   depends_on:
-  - name: compile
+    - name: 
   commands:
     - func: "bring up cluster"
 - name: config_single_member_replica
@@ -200,9 +201,9 @@ buildvariants:
   tasks:
     - name: bringup_cluster
     - name: config_standalone
-    - name: run_ycsb
-    - name: config_standalone
-    - name: run_hammer
+    # - name: run_ycsb
+    # - name: config_standalone
+    # - name: run_hammer
 
 - name: linux-wt-repl
   display_name: Linux WT 1-Node ReplSet
@@ -214,8 +215,8 @@ buildvariants:
     - "ubuntu1404-test"
   tasks:
     - name: config_single_member_replica
-    - name: run_ycsb
-    - name: config_single_member_replica
-    - name: run_hammer
+    # - name: run_ycsb
+    # - name: config_single_member_replica
+    # - name: run_hammer
     - name: destroy_cluster
 
