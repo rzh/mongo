@@ -159,8 +159,6 @@ tasks:
         display_name: mongo
 
 - name: bringup_cluster
-  depends_on:
-    - name: 
   commands:
     - func: "bring up cluster"
 - name: config_single_member_replica
