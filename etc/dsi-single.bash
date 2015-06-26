@@ -11,9 +11,9 @@ function bring-up-cluster() {
           mkdir keys
           mkdir terraform
           cd terraform
-          wget https://github.com/rzh/dsi/releases/download/t0.5.3/terraform_0.5.3_linux_amd64.zip -O temp.zip
-          unzip temp.zip
-          rm temp.zip
+          wget https://github.com/rzh/dsi/releases/download/t0.5.3/terraform_0.5.3.tar.gz -O temp.tar.gz
+          tar zxvf temp.tar.gz
+          rm temp.tar.gz
           # install workload wrapper
           cd ../bin
           wget --no-check-certificate  https://github.com/rzh/mc/releases/download/r0.0.1/mc.tar.gz -O - | tar zxv
