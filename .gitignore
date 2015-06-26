@@ -156,3 +156,6 @@ buildinfo.cpp
 DriverInclude.wxs
 
 compile_commands.json
+
+
+security*
