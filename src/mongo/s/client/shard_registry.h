@@ -34,6 +34,7 @@
 #include <string>
 #include <vector>
 
+#include "mongo/base/disallow_copying.h"
 #include "mongo/s/client/shard.h"
 
 namespace mongo {
@@ -42,7 +43,6 @@ class BSONObjBuilder;
 class CatalogManager;
 struct HostAndPort;
 class NamespaceString;
-class RemoteCommandRunner;
 class RemoteCommandTargeterFactory;
 class Shard;
 class ShardType;
@@ -62,6 +62,8 @@ class TaskExecutor;
  * the respective replica sets for membership changes.
  */
 class ShardRegistry {
+    MONGO_DISALLOW_COPYING(ShardRegistry);
+
 public:
     /**
      * Instantiates a new shard registry.
@@ -73,16 +75,22 @@ public:
      * @param catalogManager Used to retrieve the list of registered shard. TODO: remove.
      */
     ShardRegistry(std::unique_ptr<RemoteCommandTargeterFactory> targeterFactory,
-                  std::unique_ptr<RemoteCommandRunner> commandRunner,
                   std::unique_ptr<executor::TaskExecutor> executor,
                   executor::NetworkInterface* network,
                   CatalogManager* catalogManager);
 
     ~ShardRegistry();
 
-    RemoteCommandRunner* getCommandRunner() const {
-        return _commandRunner.get();
-    }
+    /**
+     * Invokes the executor's startup method, which will start any networking/async execution
+     * threads.
+     */
+    void startup();
+
+    /**
+     * Stops the executor thread and waits for it to join.
+     */
+    void shutdown();
 
     executor::TaskExecutor* getExecutor() const {
         return _executor.get();
@@ -150,9 +158,6 @@ private:
 
     // Factory to obtain remote command targeters for shards
     const std::unique_ptr<RemoteCommandTargeterFactory> _targeterFactory;
-
-    // API to run remote commands to shards in a synchronous manner
-    const std::unique_ptr<RemoteCommandRunner> _commandRunner;
 
     // Executor for scheduling work and remote commands to shards that run in an asynchronous
     // manner.

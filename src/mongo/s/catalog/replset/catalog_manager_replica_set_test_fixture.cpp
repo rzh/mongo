@@ -33,7 +33,6 @@
 #include <vector>
 
 #include "mongo/base/status_with.h"
-#include "mongo/client/remote_command_runner_mock.h"
 #include "mongo/client/remote_command_targeter_factory_mock.h"
 #include "mongo/db/repl/replication_executor.h"
 #include "mongo/executor/network_interface_mock.h"
@@ -55,8 +54,7 @@ CatalogManagerReplSetTestFixture::CatalogManagerReplSetTestFixture() = default;
 CatalogManagerReplSetTestFixture::~CatalogManagerReplSetTestFixture() = default;
 
 void CatalogManagerReplSetTestFixture::setUp() {
-    std::unique_ptr<NetworkInterfaceMock> network(
-        stdx::make_unique<executor::NetworkInterfaceMock>());
+    auto network(stdx::make_unique<executor::NetworkInterfaceMock>());
 
     _mockNetwork = network.get();
 
@@ -64,7 +62,6 @@ void CatalogManagerReplSetTestFixture::setUp() {
         stdx::make_unique<repl::ReplicationExecutor>(network.release(), nullptr, 0));
 
     _networkTestEnv = stdx::make_unique<NetworkTestEnv>(executor.get(), _mockNetwork);
-    _networkTestEnv->startUp();
 
     std::unique_ptr<CatalogManagerReplicaSet> cm(stdx::make_unique<CatalogManagerReplicaSet>());
 
@@ -73,12 +70,12 @@ void CatalogManagerReplSetTestFixture::setUp() {
                                         {HostAndPort{"TestHost1"}, HostAndPort{"TestHost2"}}),
         stdx::make_unique<DistLockManagerMock>()));
 
-    std::unique_ptr<ShardRegistry> shardRegistry(
+    auto shardRegistry(
         stdx::make_unique<ShardRegistry>(stdx::make_unique<RemoteCommandTargeterFactoryMock>(),
-                                         stdx::make_unique<RemoteCommandRunnerMock>(),
                                          std::move(executor),
                                          _mockNetwork,
                                          cm.get()));
+    shardRegistry->startup();
 
     // For now initialize the global grid object. All sharding objects will be accessible
     // from there until we get rid of it.
@@ -86,12 +83,8 @@ void CatalogManagerReplSetTestFixture::setUp() {
 }
 
 void CatalogManagerReplSetTestFixture::tearDown() {
-    // Stop the executor and wait for the executor thread to complete. This means that there
-    // will be no more calls into the executor and it can be safely deleted.
-    shardRegistry()->getExecutor()->shutdown();
-    _networkTestEnv->shutDown();
-
-    // This call will delete the shard registry, which will terminate the executor
+    // This call will shut down the shard registry, which will terminate the underlying executor
+    // and its threads.
     grid.clearForUnitTests();
 }
 
@@ -104,10 +97,6 @@ CatalogManagerReplicaSet* CatalogManagerReplSetTestFixture::catalogManager() con
 
 ShardRegistry* CatalogManagerReplSetTestFixture::shardRegistry() const {
     return grid.shardRegistry();
-}
-
-RemoteCommandRunnerMock* CatalogManagerReplSetTestFixture::commandRunner() const {
-    return RemoteCommandRunnerMock::get(shardRegistry()->getCommandRunner());
 }
 
 executor::NetworkInterfaceMock* CatalogManagerReplSetTestFixture::network() const {

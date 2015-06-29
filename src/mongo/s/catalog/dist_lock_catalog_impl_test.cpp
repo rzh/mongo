@@ -33,7 +33,6 @@
 #include "mongo/base/status.h"
 #include "mongo/base/status_with.h"
 #include "mongo/bson/json.h"
-#include "mongo/client/remote_command_runner_mock.h"
 #include "mongo/client/remote_command_targeter_factory_mock.h"
 #include "mongo/client/remote_command_targeter_mock.h"
 #include "mongo/db/commands.h"
@@ -104,24 +103,20 @@ private:
             stdx::make_unique<repl::ReplicationExecutor>(networkUniquePtr.release(), nullptr, 0);
 
         _networkTestEnv = stdx::make_unique<NetworkTestEnv>(executor.get(), network);
-        _networkTestEnv->startUp();
 
         _shardRegistry =
             stdx::make_unique<ShardRegistry>(stdx::make_unique<RemoteCommandTargeterFactoryMock>(),
-                                             stdx::make_unique<RemoteCommandRunnerMock>(),
                                              std::move(executor),
                                              network,
                                              &_catalogMgr);
+        _shardRegistry->startup();
 
         _distLockCatalog =
             stdx::make_unique<DistLockCatalogImpl>(&_targeter, _shardRegistry.get(), kWTimeout);
     }
 
     void tearDown() override {
-        // Stop the executor and wait for the executor thread to complete. This means that
-        // there will be no more calls into the executor and it can be safely deleted.
-        shardRegistry()->getExecutor()->shutdown();
-        _networkTestEnv->shutDown();
+        shardRegistry()->shutdown();
     }
 
     std::unique_ptr<executor::NetworkTestEnv> _networkTestEnv;
