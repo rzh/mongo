@@ -26,49 +26,61 @@
  *    it in the license file.
  */
 
-#define MONGO_LOG_DEFAULT_COMPONENT ::mongo::logger::LogComponent::kSharding
+#pragma once
 
-#include "mongo/platform/basic.h"
-
-#include "mongo/s/catalog/dist_lock_manager.h"
-
-#include <memory>
+#include "mongo/db/repl/optime.h"
 
 namespace mongo {
 
-const stdx::chrono::milliseconds DistLockManager::kDefaultSingleLockAttemptTimeout(0);
-const stdx::chrono::milliseconds DistLockManager::kDefaultLockRetryInterval(1000);
+class BSONObj;
+class Status;
 
-DistLockManager::ScopedDistLock::ScopedDistLock(DistLockHandle lockHandle,
-                                                DistLockManager* lockManager)
-    : _lockID(std::move(lockHandle)), _lockManager(lockManager) {}
+namespace repl {
 
-DistLockManager::ScopedDistLock::~ScopedDistLock() {
-    if (_lockManager) {
-        _lockManager->unlock(_lockID);
-    }
-}
+/**
+ * Metadata returned when ReplicationMetadata is requested.
+ */
+class ReplicationMetadata {
+public:
+    /**
+     * Initializes this ReplicationMetadata from the contents of args.
+     */
+    Status initialize(const BSONObj& metadataObj);
 
-DistLockManager::ScopedDistLock::ScopedDistLock(ScopedDistLock&& other) {
-    *this = std::move(other);
-}
-
-DistLockManager::ScopedDistLock& DistLockManager::ScopedDistLock::operator=(
-    ScopedDistLock&& other) {
-    if (this != &other) {
-        _lockID = std::move(other._lockID);
-        _lockManager = other._lockManager;
-        other._lockManager = nullptr;
+    /**
+     * Returns the OpTime of the most recently committed op of which the sender was aware.
+     */
+    OpTime getLastOpCommitted() const {
+        return _lastOpCommitted;
     }
 
-    return *this;
-}
-
-Status DistLockManager::ScopedDistLock::checkStatus() {
-    if (!_lockManager) {
-        return Status(ErrorCodes::IllegalOperation, "no lock manager, lock was not acquired");
+    /**
+     * Returns the ReplSetConfig version number of the sender.
+     */
+    long long getConfigVersion() const {
+        return _configVersion;
     }
 
-    return _lockManager->checkStatus(_lockID);
-}
-}
+    /**
+     * Returns the ID of the current primary from the perspective of the sender.
+     */
+    long long getPrimaryId() const {
+        return _primaryId;
+    }
+
+    /**
+     * Returns the current term from the perspective of the sender.
+     */
+    long long getTerm() const {
+        return _term;
+    }
+
+private:
+    OpTime _lastOpCommitted;
+    long long _configVersion = -1;
+    long long _primaryId = -1;
+    long long _term = -1;
+};
+
+}  // namespace repl
+}  // namespace mongo
