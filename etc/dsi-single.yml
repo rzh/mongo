@@ -4,10 +4,22 @@ pre:
     - command: shell.track
 
 post:
+    - command: shell.exec
+      # destroy the cluster
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          set -e 
+          set -o verbose
+          cd ./clusters/single
+          # configure mongodb cluster with wiredTiger
+          yes yes | ./terraform destroy
+          echo "Cluster DESTROYED."
     - command: shell.cleanup
 
 functions:
-  "bring up cluster":
+  "Single Member Replica Test":
     - command: shell.exec
       params:
         script: |
@@ -53,7 +65,6 @@ functions:
           # this will extract all public and private IP address information
           ./env.sh
           echo "EC2 Cluster STARTED."
-  "configure mongodb single member replica cluster":
     - command: shell.exec
       # bring up the mongod
       params:
@@ -67,6 +78,18 @@ functions:
           # configure mongodb cluster with wiredTiger
           ../../bin/config-single-replica.sh mongodb wiredTiger
           echo "Single MongoDB Replica Cluster STARTED."
+    - command: shell.exec
+      # destroy the cluster
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          set -e 
+          set -o verbose
+          cd ./clusters/single
+          # configure mongodb cluster with wiredTiger
+          yes yes | ./terraform destroy
+          echo "Cluster DESTROYED."
   "configure standalone mongodb":
     - command: shell.exec
       # bring up the mongod
@@ -159,34 +182,9 @@ tasks:
         content_type: ${content_type|application/octet-stream}
         display_name: mongo
 
-- name: bringup_cluster
+- name: run_single_replica_test
   commands:
-    - func: "bring up cluster"
-- name: config_single_member_replica
-  depends_on:
-    - name: bringup_cluster
-  commands:
-    - func: "configure mongodb single member replica cluster"
-- name: config_standalone
-  depends_on:
-    - name: bringup_cluster
-  commands:
-    - func: "configure standalone mongodb"
-- name: run_ycsb
-  depends_on:
-    - name: bringup_cluster
-  commands:
-    - func: "run ycsb tests"
-- name: run_hammer
-  depends_on:
-    - name: bringup_cluster
-  commands:
-    - func: "run hammer tests"
-- name: destroy_cluster
-  depends_on:
-    - name: config_single_member_replica
-  commands:
-    - func: "destroy cluster"
+    - func "Single Member Replica Test":
 
 buildvariants:
 - name: linux-wt-repl
@@ -198,10 +196,5 @@ buildvariants:
   run_on:
     - "ubuntu1404-test"
   tasks:
-    - name: bringup_cluster
-    - name: config_single_member_replica
-    # - name: run_ycsb
-    # - name: config_single_member_replica
-    # - name: run_hammer
-    - name: destroy_cluster
+    - name: run_single_replica_test
 
