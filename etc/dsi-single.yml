@@ -188,21 +188,6 @@ tasks:
     - func: "destroy cluster"
 
 buildvariants:
-- name: linux-wt-standalone
-  display_name: Linux WT Standalone
-  expansions:
-    compile_flags: -j$(grep -c ^processor /proc/cpuinfo) CC=/opt/mongodbtoolchain/bin/gcc CXX=/opt/mongodbtoolchain/bin/g++ --release
-    setup: standalone
-
-  run_on:
-    - "ubuntu1404-test"
-  tasks:
-    - name: bringup_cluster
-    - name: config_standalone
-    # - name: run_ycsb
-    # - name: config_standalone
-    # - name: run_hammer
-
 - name: linux-wt-repl
   display_name: Linux WT 1-Node ReplSet
   expansions:
@@ -212,6 +197,7 @@ buildvariants:
   run_on:
     - "ubuntu1404-test"
   tasks:
+    - name: bringup_cluster
     - name: config_single_member_replica
     # - name: run_ycsb
     # - name: config_single_member_replica
