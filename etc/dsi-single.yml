@@ -183,7 +183,7 @@ tasks:
     - func: "run hammer tests"
 - name: destroy_cluster
   depends_on:
-    - name: bringup_cluster
+    - name: config_single_member_replica
   commands:
     - func: "destroy cluster"
 
