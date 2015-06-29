@@ -63,6 +63,7 @@ functions:
           set -e 
           set -o verbose
           cd ./clusters/single
+          ls -la
           # configure mongodb cluster with wiredTiger
           ../../bin/config-single-replica.sh mongodb wiredTiger
           echo "Single MongoDB Replica Cluster STARTED."
