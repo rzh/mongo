@@ -4,22 +4,10 @@ pre:
     - command: shell.track
 
 post:
-    - command: shell.exec
-      # destroy the cluster
-      params:
-        background: false
-        working_dir: dsi
-        script: |
-          set -e 
-          set -o verbose
-          cd ./clusters/single
-          # configure mongodb cluster with wiredTiger
-          yes yes | ./terraform destroy
-          echo "Cluster DESTROYED."
     - command: shell.cleanup
 
 functions:
-  "Single Member Replica Test":
+  "bring up cluster":
     - command: shell.exec
       params:
         script: |
@@ -65,6 +53,7 @@ functions:
           # this will extract all public and private IP address information
           ./env.sh
           echo "EC2 Cluster STARTED."
+  "configure mongodb single member replica cluster":
     - command: shell.exec
       # bring up the mongod
       params:
@@ -74,22 +63,9 @@ functions:
           set -e 
           set -o verbose
           cd ./clusters/single
-          ls -la
           # configure mongodb cluster with wiredTiger
           ../../bin/config-single-replica.sh mongodb wiredTiger
           echo "Single MongoDB Replica Cluster STARTED."
-    - command: shell.exec
-      # destroy the cluster
-      params:
-        background: false
-        working_dir: dsi
-        script: |
-          set -e 
-          set -o verbose
-          cd ./clusters/single
-          # configure mongodb cluster with wiredTiger
-          yes yes | ./terraform destroy
-          echo "Cluster DESTROYED."
   "configure standalone mongodb":
     - command: shell.exec
       # bring up the mongod
@@ -184,7 +160,18 @@ tasks:
 
 - name: run_single_replica_test
   commands:
-    - func "Single Member Replica Test":
+    - func: "bring up cluster"
+    - func: "configure mongodb single member replica cluster"
+    - func: "destroy cluster"
+- name: run_ycsb
+  commands:
+    - func: "run ycsb tests"
+- name: run_hammer
+  commands:
+    - func: "run hammer tests"
+- name: destroy_cluster
+  commands:
+    - func: "destroy cluster"
 
 buildvariants:
 - name: linux-wt-repl
