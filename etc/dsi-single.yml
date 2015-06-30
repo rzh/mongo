@@ -152,7 +152,8 @@ tasks:
     - func: "bring up cluster"
     - func: "configure mongodb cluster"
     - func: "run test"
-      test: "test test"
+      expansions:
+        test: "test test"
     - func: "destroy cluster"
 
 buildvariants:
