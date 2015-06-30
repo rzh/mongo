@@ -5,6 +5,18 @@ pre:
 
 post:
     - command: shell.cleanup
+    - command: shell.exec
+      # destroy the cluster
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          set -e 
+          set -o verbose
+          cd ./clusters/single
+          # configure mongodb cluster with wiredTiger
+          yes yes | ./terraform destroy
+          echo "Cluster DESTROYED."
 
 functions:
   "bring up cluster":
