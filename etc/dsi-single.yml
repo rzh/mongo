@@ -50,6 +50,7 @@ functions:
         background: false
         working_dir: dsi
         silent: true
+        script: |
           cd ./clusters/single
           cp ../../terraform/* .
           # stage aws credential for terraform
