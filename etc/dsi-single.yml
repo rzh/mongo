@@ -64,7 +64,7 @@ functions:
           set -o verbose
           cd ./clusters/single
           # configure mongodb cluster with wiredTiger
-          ../../bin/config-${setup}.sh mongodb wiredTiger
+          ../../bin/config-${setup}.sh mongodb ${storageEngine}
           echo "Single MongoDB Replica Cluster STARTED."
   "run test":
     - command: shell.exec
@@ -133,7 +133,7 @@ tasks:
         content_type: ${content_type|application/octet-stream}
         display_name: mongo
 
-- name: single_replica_test
+- name: single_cluster_test
   commands:
     - func: "bring up cluster"
     - func: "configure mongodb cluster"
@@ -145,9 +145,10 @@ buildvariants:
   expansions:
     compile_flags: -j$(grep -c ^processor /proc/cpuinfo) CC=/opt/mongodbtoolchain/bin/gcc CXX=/opt/mongodbtoolchain/bin/g++ --release
     setup: single-replica
+    storageEngine: wiredTiger
 
   run_on:
     - "ubuntu1404-test"
   tasks:
-    - name: single_replica_test
+    - name: single_cluster_test
 
