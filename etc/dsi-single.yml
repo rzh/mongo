@@ -87,7 +87,7 @@ functions:
           ../../bin/config-${setup}.sh mongodb ${storageEngine}
           echo "Single MongoDB Replica Cluster STARTED."
           # configure run script
-          # ./update_run_config.sh
+          ./update_run_config.sh
   "run test":
     - command: shell.exec
       params:
