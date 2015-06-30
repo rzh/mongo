@@ -52,7 +52,6 @@ functions:
         silent: true
         script: |
           cd ./clusters/single
-          cp ../../terraform/* .
           # stage aws credential for terraform
           ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://s3.amazonaws.com/mciupload/dsi/${build_variant}/${revision}/mongod-${build_id}
           # generate aws private key file
@@ -67,6 +66,8 @@ functions:
           # to create single mongod EC2 cluster
           set -e 
           set -o verbose
+          cd ./clusters/single
+          cp ../../terraform/* .
           # create all resources and instances
           ./terraform apply
           # this will extract all public and private IP address information
