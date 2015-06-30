@@ -86,7 +86,7 @@ functions:
           set -e
           set -v
           cd ./clusters/single
-          rm ./perf.json
+          rm -f ./perf.json
           rm -rf ./reports
           echo "Run test for ${test} with setup ${setup}"
           # run ycsb test
