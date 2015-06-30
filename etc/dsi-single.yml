@@ -53,7 +53,7 @@ functions:
           # this will extract all public and private IP address information
           ./env.sh
           echo "EC2 Cluster STARTED."
-  "configure mongodb single member replica cluster":
+  "configure mongodb cluster":
     - command: shell.exec
       # bring up the mongod
       params:
@@ -64,22 +64,9 @@ functions:
           set -o verbose
           cd ./clusters/single
           # configure mongodb cluster with wiredTiger
-          ../../bin/config-single-replica.sh mongodb wiredTiger
+          ../../bin/config-${setup}.sh mongodb wiredTiger
           echo "Single MongoDB Replica Cluster STARTED."
-  "configure standalone mongodb":
-    - command: shell.exec
-      # bring up the mongod
-      params:
-        background: false
-        working_dir: dsi
-        script: |
-          set -e 
-          set -o verbose
-          cd ./clusters/single
-          # configure mongodb cluster with wiredTiger
-          ../../bin/config-standalone.sh mongodb wiredTiger
-          echo "Standalone MongoDB STARTED."
-  "run ycsb tests":
+  "run test":
     - command: shell.exec
       params:
         working_dir: dsi
@@ -87,22 +74,10 @@ functions:
           set -e
           set -v
           cd ./clusters/single
+          rm ./perf.json
+          rm -rf ./reports
           # run ycsb test
-          ./bin/mc -config single-ycsb.json -run ycsb-run-${setup} -o perf.json 
-    - command: "json.send"
-      params:
-        name: "dsi"
-        file: "src/clusters/single/perf.json"
-  "run hammer tests":
-    - command: shell.exec
-      params:
-        working_dir: dsi
-        script: |
-          set -e
-          set -v
-          cd ./clusters/single
-          # run hammer test
-          ./bin/mc -config single-hammer.json -run hammer-run-${setup} -o perf.json 
+          ./bin/mc -config ${test}.json -run ${test}-run-${setup} -o perf.json 
     - command: "json.send"
       params:
         name: "dsi"
@@ -161,16 +136,7 @@ tasks:
 - name: single_replica_test
   commands:
     - func: "bring up cluster"
-    - func: "configure mongodb single member replica cluster"
-    - func: "destroy cluster"
-- name: run_ycsb
-  commands:
-    - func: "run ycsb tests"
-- name: run_hammer
-  commands:
-    - func: "run hammer tests"
-- name: destroy_cluster
-  commands:
+    - func: "configure mongodb cluster"
     - func: "destroy cluster"
 
 buildvariants:
@@ -178,7 +144,7 @@ buildvariants:
   display_name: Linux WT 1-Node ReplSet
   expansions:
     compile_flags: -j$(grep -c ^processor /proc/cpuinfo) CC=/opt/mongodbtoolchain/bin/gcc CXX=/opt/mongodbtoolchain/bin/g++ --release
-    setup: replica
+    setup: single-replica
 
   run_on:
     - "ubuntu1404-test"
