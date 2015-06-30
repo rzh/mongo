@@ -1,0 +1,181 @@
+stepback: false
+
+pre:
+    - command: shell.track
+
+post:
+    - command: shell.cleanup
+    - command: shell.exec
+      # destroy the cluster
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          set -e 
+          set -o verbose
+          cd ./clusters/single
+          # configure mongodb cluster with wiredTiger
+          yes yes | ./terraform destroy
+          echo "Cluster DESTROYED."
+
+functions:
+  "bring up cluster":
+    - command: shell.exec
+      params:
+        script: |
+          rm -rf ./*
+          mkdir src
+    - command: shell.exec
+      # checkout dsi code
+      params:
+        working_dir: .
+        script: |
+          set -e 
+          set -v
+          git clone https://github.com/rzh/dsi
+          cd dsi
+          # install terraform
+          mkdir keys
+          mkdir terraform
+          cd terraform
+          wget –-quiet --no-check-certificate https://github.com/rzh/dsi/releases/download/t0.5.3/terraform_0.5.3.tar.gz -O - | tar zxv
+          # install workload wrapper
+          cd ../bin
+          wget –-quiet --no-check-certificate https://github.com/rzh/mc/releases/download/r0.0.1/mc.tar.gz -O - | tar zxv
+          cd ..
+          ls
+    - command: shell.exec
+      # configure environment, has private information, no logging
+      params:
+        background: false
+        working_dir: dsi
+        silent: true
+        script: |
+          cd ./clusters/single
+          # stage aws credential for terraform
+          ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://s3.amazonaws.com/mciupload/dsi/${build_variant}/${revision}/mongod-${build_id}
+          # generate aws private key file
+          echo "${ec2_pem}" > ../../keys/aws.pem
+          chmod 400 ../../keys/aws.pem
+    - command: shell.exec
+      # bring up the cluster
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          # to create single mongod EC2 cluster
+          set -e 
+          set -o verbose
+          cd ./clusters/single
+          cp ../../terraform/* .
+          # create all resources and instances
+          ./terraform apply
+          # this will extract all public and private IP address information
+          ./env.sh
+          echo "EC2 Cluster STARTED."
+  "configure mongodb cluster":
+    - command: shell.exec
+      # bring up the mongod
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          set -e 
+          set -o verbose
+          cd ./clusters/single
+          # configure mongodb cluster with wiredTiger
+          ../../bin/config-${setup}.sh mongodb ${storageEngine}
+          echo "Single MongoDB Replica Cluster STARTED."
+          # configure run script
+          ./update_run_config.sh
+  "run test":
+    - command: shell.exec
+      params:
+        working_dir: dsi
+        script: |
+          set -e
+          set -v
+          cd ./clusters/single
+          rm -f ./perf.json
+          rm -rf ./reports
+          echo "Run test for ${test} with setup ${setup}"
+          # run test
+          ../../bin/mc -config ${test}.json -run ${test}-run-${setup} -o perf.json 
+          echo "Done test for ${test} with setup ${setup}!"
+   #- command: "json.send"
+   #  params:
+   #    name: "dsi"
+   #    file: "src/clusters/single/perf.json"
+  "destroy cluster":
+    - command: shell.exec
+      # destroy the cluster
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          set -e 
+          set -o verbose
+          cd ./clusters/single
+          # configure mongodb cluster with wiredTiger
+          yes yes | ./terraform destroy
+          echo "Cluster DESTROYED."
+tasks:
+- name: compile
+  commands:
+    - command: git.get_project
+      params:
+        directory: src
+    - command: git.apply_patch
+      params:
+        directory: src
+    - command: shell.exec
+      params:
+        working_dir: src
+        script: |
+          set -o errexit
+          set -o verbose
+          ${scons|scons} ${compile_flags|} mongo
+          ${scons|scons} ${compile_flags|} mongod
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/mongod
+        remote_file: dsi/${build_variant}/${revision}/mongod-${build_id}
+        bucket: mciuploads
+        permissions: public-read
+        content_type: ${content_type|application/octet-stream}
+        display_name: mongod
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/mongo
+        remote_file: dsi/${build_variant}/${revision}/mongo-${build_id}
+        bucket: mciuploads
+        permissions: public-read
+        content_type: ${content_type|application/octet-stream}
+        display_name: mongo
+
+- name: single_cluster_test
+  commands:
+    - func: "bring up cluster"
+    - func: "configure mongodb cluster"
+    - func: "run test"
+      vars:
+          test: "run-ycsb"
+    - func: "destroy cluster"
+
+buildvariants:
+- name: linux-wt-repl
+  display_name: Linux WT 1-Node ReplSet
+  expansions:
+    compile_flags: -j$(grep -c ^processor /proc/cpuinfo) CC=/opt/mongodbtoolchain/bin/gcc CXX=/opt/mongodbtoolchain/bin/g++ --release
+    setup: single-replica
+    storageEngine: wiredTiger
+
+  run_on:
+    - "ubuntu1404-test"
+  tasks:
+    - name: single_cluster_test
+
