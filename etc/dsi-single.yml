@@ -102,10 +102,10 @@ functions:
           # run test
           ../../bin/mc -config ${test}.json -run ${test}-run-${setup} -o perf.json 
           echo "Done test for ${test} with setup ${setup}!"
-   #- command: "json.send"
-   #  params:
-   #    name: "dsi"
-   #    file: "src/clusters/single/perf.json"
+    - command: "json.send"
+      params:
+         name: "terraform-testing"
+         file: "dsi/clusters/single/perf.json"
   "destroy cluster":
     - command: shell.exec
       # destroy the cluster
