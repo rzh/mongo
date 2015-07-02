@@ -101,6 +101,8 @@ functions:
           echo "Run test for ${test} with setup ${setup}"
           # run test
           ../../bin/mc -config ${test}.json -run ${test}-run-${setup} -o perf.json 
+          pwd
+          ls -la
           echo "Done test for ${test} with setup ${setup}!"
     - command: "json.send"
       params:
