@@ -84,7 +84,7 @@ functions:
           set -o verbose
           cd ./clusters/${cluster}
           # configure mongodb cluster with wiredTiger
-          ../../bin/config-${setup}.sh mongodb ${storageEngine}
+          ../../bin/config-${setup}.sh mongodb ${storageEngine} ${numShard}
           echo "${cluster} MongoDB Replica Cluster STARTED."
           # configure run script
           ./update_run_config.sh
@@ -131,6 +131,7 @@ functions:
         source_dir: dsi/clusters/${cluster}
         include:
           - "reports/**"
+          - dsi/cluster/${cluster}/reports/**
     - command: shell.exec
       # destroy the cluster
       params:
@@ -209,6 +210,7 @@ buildvariants:
     compile_flags: -j$(grep -c ^processor /proc/cpuinfo) CC=/opt/mongodbtoolchain/bin/gcc CXX=/opt/mongodbtoolchain/bin/g++ --release
     setup: single-replica
     cluster: single
+    numShard: 0
     storageEngine: wiredTiger
 
   run_on:
