@@ -213,7 +213,8 @@ buildvariants:
     storageEngine: wiredTiger
 
   run_on:
-    - "ubuntu1404-test"
+      # - "ubuntu1404-test"
+      - "linux-64-amzn-perf-longevity"
   tasks:
     - name: single_cluster_test
 
