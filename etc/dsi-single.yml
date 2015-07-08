@@ -126,14 +126,14 @@ functions:
     - command: archive.targz_pack
       params:
         target: "reports.tgz"
-        source_dir: "dsi"
+        source_dir: "dsi/clusters/single"
         include:
-          - "dsi/clusters/single/reports/*"
+          - "reports/*"
     - command: s3.put
       params:
             aws_key: ${aws_key}
             aws_secret: ${aws_secret}
-            local_file: dsi/reports.tgz
+            local_file: reports.tgz
             remote_file: dsi/${build_variant}/${revision}/logs/${test}-${build_id}.${ext|tgz}
             bucket: mciuploads
             permissions: public-read
