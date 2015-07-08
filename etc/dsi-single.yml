@@ -51,7 +51,7 @@ functions:
         working_dir: dsi
         silent: true
         script: |
-          cd ./clusters/single
+          cd ./clusters/${cluster}
           # stage aws credential for terraform
           ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://s3.amazonaws.com/mciupload/dsi/${build_variant}/${revision}/mongod-${build_id}
           # generate aws private key file
@@ -63,10 +63,10 @@ functions:
         background: false
         working_dir: dsi
         script: |
-          # to create single mongod EC2 cluster
+          # to create a mongod EC2 cluster
           set -e 
           set -o verbose
-          cd ./clusters/single
+          cd ./clusters/${cluster}
           cp ../../terraform/* .
           # create all resources and instances
           ./terraform apply
@@ -82,10 +82,10 @@ functions:
         script: |
           set -e 
           set -o verbose
-          cd ./clusters/single
+          cd ./clusters/${cluster}
           # configure mongodb cluster with wiredTiger
           ../../bin/config-${setup}.sh mongodb ${storageEngine}
-          echo "Single MongoDB Replica Cluster STARTED."
+          echo "${cluster} MongoDB Replica Cluster STARTED."
           # configure run script
           ./update_run_config.sh
   "run test":
@@ -95,7 +95,7 @@ functions:
         script: |
           set -e
           set -v
-          cd ./clusters/single
+          cd ./clusters/${cluster}
           rm -f ./perf.json
           rm -rf ./reports
           echo "Run test for ${test} with setup ${setup}"
@@ -108,7 +108,7 @@ functions:
     - command: "json.send"
       params:
          name: "terraform-testing"
-         file: "dsi/clusters/single/perf.json"
+         file: "dsi/clusters/${cluster}/perf.json"
   "destroy cluster":
     - command: shell.exec
       # destroy the cluster
@@ -118,8 +118,8 @@ functions:
         script: |
           set -e 
           set -o verbose
-          cd ./clusters/single
-          # configure mongodb cluster with wiredTiger
+          cd ./clusters/${cluster}
+          # destroy the EC2 cluster
           yes yes | ./terraform destroy
           echo "Cluster DESTROYED."
 
@@ -127,10 +127,9 @@ functions:
     - command: archive.targz_pack
       params:
         target: "reports.tgz"
-        source_dir: "dsi/clusters/single"
+        source_dir: "dsi/clusters/${cluster}"
         include:
           - "reports/**"
-          - "dsi/clusters/single/reports/**"
     - command: shell.exec
       # destroy the cluster
       params:
@@ -196,18 +195,19 @@ tasks:
     - func: "configure mongodb cluster"
     - func: "run test"
       vars:
-          test: "ycsb"
+        test: "ycsb"
     - func: "upload log files"
       vars:
-          test: "ycsb"
+        test: "ycsb"
     - func: "destroy cluster"
 
 buildvariants:
-- name: linux-wt-repl
+- name: linux-wt-repl-1
   display_name: Linux WT 1-Node ReplSet
   expansions:
     compile_flags: -j$(grep -c ^processor /proc/cpuinfo) CC=/opt/mongodbtoolchain/bin/gcc CXX=/opt/mongodbtoolchain/bin/g++ --release
     setup: single-replica
+    cluster: single
     storageEngine: wiredTiger
 
   run_on:
