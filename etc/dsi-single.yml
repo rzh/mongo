@@ -129,8 +129,18 @@ functions:
         target: "reports.tgz"
         source_dir: "dsi/clusters/single"
         include:
-          - "reports/*"
-          - "dsi/clusters/single/reports/*"
+          - "reports/**"
+          - "dsi/clusters/single/reports/**"
+    - command: shell.exec
+      # destroy the cluster
+      params:
+        background: false
+        working_dir: .
+        script: |
+          set -e 
+          set -o verbose
+          ls -la
+
     - command: s3.put
       params:
             aws_key: ${aws_key}
