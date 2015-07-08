@@ -128,7 +128,7 @@ functions:
     - command: archive.targz_pack
       params:
         target: "reports.tgz"
-        source_dir: "dsi/clusters/${cluster}"
+        source_dir: dsi/clusters/${cluster}
         include:
           - "reports/**"
     - command: shell.exec
