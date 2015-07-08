@@ -103,6 +103,7 @@ functions:
           ../../bin/mc -config run-${test}.json -run ${test}-run-${setup} -o perf.json 
           pwd
           ls -la
+          ls -la ./reports
           echo "Done test for ${test} with setup ${setup}!"
     - command: "json.send"
       params:
@@ -129,6 +130,7 @@ functions:
         source_dir: "dsi/clusters/single"
         include:
           - "reports/*"
+          - "dsi/clusters/single/reports/*"
     - command: s3.put
       params:
             aws_key: ${aws_key}
