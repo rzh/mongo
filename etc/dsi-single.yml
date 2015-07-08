@@ -128,10 +128,9 @@ functions:
     - command: archive.targz_pack
       params:
         target: "reports.tgz"
-        source_dir: dsi/clusters/${cluster}
+        source_dir: dsi/clusters/single
         include:
           - "reports/**"
-          - dsi/cluster/${cluster}/reports/**
     - command: shell.exec
       # destroy the cluster
       params:
@@ -218,6 +217,19 @@ buildvariants:
   tasks:
     - name: single_cluster_test
 
+# - name: linux-wt-shard
+#   display_name: Linux WT Shard
+#   expansions:
+#     compile_flags: -j$(grep -c ^processor /proc/cpuinfo) CC=/opt/mongodbtoolchain/bin/gcc CXX=/opt/mongodbtoolchain/bin/g++ --release
+#     setup: single-replica
+#     cluster: shard
+#     numShard: 3
+#     storageEngine: wiredTiger
+# 
+#   run_on:
+#     - "ubuntu1404-test"
+#   tasks:
+#     - name: single_cluster_test
 
 
 
