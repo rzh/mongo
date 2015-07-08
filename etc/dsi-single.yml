@@ -96,7 +96,7 @@ functions:
           set -e
           set -v
           cd ./clusters/${cluster}
-          rm -f ./perf.json
+          rm -f ../perf.json
           rm -rf ./reports
           echo "Run test for ${test} with setup ${setup}"
           # run test
@@ -104,11 +104,12 @@ functions:
           pwd
           ls -la
           ls -la ./reports
+          mv perf.json ..
           echo "Done test for ${test} with setup ${setup}!"
     - command: "json.send"
       params:
          name: "terraform-testing"
-         file: "dsi/clusters/${cluster}/perf.json"
+         file: "dsi/clusters/perf.json"
   "destroy cluster":
     - command: shell.exec
       # destroy the cluster
