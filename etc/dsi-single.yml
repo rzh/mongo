@@ -252,5 +252,3 @@ buildvariants:
   tasks:
     - name: shard_cluster_test
 
-
-      # - "linux-64-amzn-perf-longevity"
