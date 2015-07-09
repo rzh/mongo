@@ -105,6 +105,8 @@ functions:
           ls -la
           ls -la ./reports
           mv perf.json ..
+          cd ..
+          cat perf.json >> perf_all.json
           echo "Done test for ${test} with setup ${setup}!"
     - command: "json.send"
       params:
@@ -123,6 +125,9 @@ functions:
           # destroy the EC2 cluster
           yes yes | ./terraform destroy
           echo "Cluster DESTROYED."
+          echo "All perf results"
+          cd ..
+          cat perf_all.json
 
   "make single cluster log artifact":
     - command: archive.targz_pack
