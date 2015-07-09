@@ -98,6 +98,7 @@ functions:
           ./update_run_config.sh
           rm -f ../perf.json
           rm -rf ./reports
+          rm -f ../../reports.tgz
           echo "Run test for ${test} with setup ${setup}"
           # run test
           ../../bin/mc -config run-${test}.json -run ${test}-run-${setup} -o perf.json 
@@ -134,6 +135,14 @@ functions:
       params:
         target: "reports.tgz"
         source_dir: "dsi/clusters/single"
+        include:
+          - "reports/**"
+
+  "make single cluster log artifact":
+    - command: archive.targz_pack
+      params:
+        target: "reports.tgz"
+        source_dir: "dsi/clusters/cluster"
         include:
           - "reports/**"
 
