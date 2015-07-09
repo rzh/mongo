@@ -124,23 +124,15 @@ functions:
           yes yes | ./terraform destroy
           echo "Cluster DESTROYED."
 
-  "upload log files":
+  "make single cluster log artifact":
     - command: archive.targz_pack
       params:
         target: "reports.tgz"
-        source_dir: dsi/clusters
+        source_dir: "dsi/clusters/single"
         include:
-          - "${cluster}/reports/**"
-    - command: shell.exec
-      # destroy the cluster
-      params:
-        background: false
-        working_dir: .
-        script: |
-          set -e 
-          set -o verbose
-          ls -la
+          - "reports/**"
 
+  "upload log file":
     - command: s3.put
       params:
             aws_key: ${aws_key}
@@ -197,7 +189,8 @@ tasks:
     - func: "run test"
       vars:
         test: "ycsb"
-    - func: "upload log files"
+    - func: "make single cluster log artifact"
+    - func: "upload log file"
       vars:
         test: "ycsb"
     - func: "destroy cluster"
