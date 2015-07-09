@@ -15,7 +15,7 @@ post:
           set -o verbose
           cd ./clusters/${cluster}
           # configure mongodb cluster with wiredTiger
-          # yes yes | ./terraform destroy
+          yes yes | ./terraform destroy
           echo "Cluster DESTROYED."
 
 functions:
