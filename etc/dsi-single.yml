@@ -244,7 +244,7 @@ buildvariants:
     compile_flags: -j$(grep -c ^processor /proc/cpuinfo) CC=/opt/mongodbtoolchain/bin/gcc CXX=/opt/mongodbtoolchain/bin/g++ --release
     setup: shard
     cluster: shard
-    numShard: 3
+    numShard: 1
     storageEngine: wiredTiger
 
   run_on:
