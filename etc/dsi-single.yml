@@ -128,9 +128,9 @@ functions:
     - command: archive.targz_pack
       params:
         target: "reports.tgz"
-        source_dir: dsi/clusters/${cluster}
+        source_dir: dsi/clusters
         include:
-          - "reports/**"
+          - "${cluster}/reports/**"
     - command: shell.exec
       # destroy the cluster
       params:
@@ -213,8 +213,8 @@ buildvariants:
     storageEngine: wiredTiger
 
   run_on:
-      # - "ubuntu1404-test"
-      - "linux-64-amzn-perf-longevity"
+      - "ubuntu1404-test"
+      # - "linux-64-amzn-perf-longevity"
   tasks:
     - name: single_cluster_test
 
