@@ -87,7 +87,6 @@ functions:
           ../../bin/config-${setup}.sh mongodb ${storageEngine} ${numShard}
           echo "${cluster} MongoDB Replica Cluster STARTED."
           # configure run script
-          ./update_run_config.sh
   "run test":
     - command: shell.exec
       params:
@@ -96,6 +95,7 @@ functions:
           set -e
           set -v
           cd ./clusters/${cluster}
+          ./update_run_config.sh
           rm -f ../perf.json
           rm -rf ./reports
           echo "Run test for ${test} with setup ${setup}"
