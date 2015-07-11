@@ -19,7 +19,7 @@ post:
           echo "Cluster DESTROYED."
 
 functions:
-  "bring up cluster":
+  "prepare environment":
     - command: shell.exec
       params:
         script: |
@@ -57,6 +57,7 @@ functions:
           # generate aws private key file
           echo "${ec2_pem}" > ../../keys/aws.pem
           chmod 400 ../../keys/aws.pem
+  "bring up cluster":
     - command: shell.exec
       # bring up the cluster
       params:
@@ -70,6 +71,25 @@ functions:
           cp ../../terraform/* .
           # create all resources and instances
           ./terraform apply
+          # this will extract all public and private IP address information
+          ./env.sh
+          echo "EC2 Cluster STARTED."
+  "bring up 3 shard cluster":
+    - command: shell.exec
+      # bring up the cluster
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          # to create a mongod EC2 cluster
+          set -e 
+          set -o verbose
+          cd ./clusters/${cluster}
+          cp ../../terraform/* .
+          # create all resources and instances
+          ./terraform apply -var="count=3"
+          # workaround for failure to bring up all at the same time
+          ./terraform apply -var="count=9"
           # this will extract all public and private IP address information
           ./env.sh
           echo "EC2 Cluster STARTED."
@@ -199,6 +219,7 @@ tasks:
 
 - name: single_cluster_test
   commands:
+    - func: "prepare environment"
     - func: "bring up cluster"
     - func: "configure mongodb cluster"
     - func: "run test"
@@ -212,7 +233,8 @@ tasks:
 
 - name: shard_cluster_test
   commands:
-    - func: "bring up cluster"
+    - func: "prepare environment"
+    - func: "bring up 3 shard cluster"
     - func: "configure mongodb cluster"
     - func: "run test"
       vars:
