@@ -63,6 +63,7 @@ functions:
       params:
         background: false
         working_dir: dsi
+        silent: true
         script: |
           # to create a mongod EC2 cluster
           set -e 
@@ -80,6 +81,7 @@ functions:
       params:
         background: false
         working_dir: dsi
+        silent: true
         script: |
           # to create a mongod EC2 cluster
           set -e 
