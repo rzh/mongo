@@ -224,19 +224,19 @@ tasks:
     - func: "destroy cluster"
 
 buildvariants:
-# - name: linux-wt-repl-1
-#   display_name: Linux WT 1-Node ReplSet
-#   expansions:
-#     compile_flags: -j$(grep -c ^processor /proc/cpuinfo) CC=/opt/mongodbtoolchain/bin/gcc CXX=/opt/mongodbtoolchain/bin/g++ --release
-#     setup: single-replica
-#     cluster: single
-#     numShard: 0
-#     storageEngine: wiredTiger
-# 
-#   run_on:
-#     - "linux-64-amzn-perf-longevity"
-#   tasks:
-#     - name: single_cluster_test
+- name: linux-wt-repl-1
+  display_name: Linux WT 1-Node ReplSet
+  expansions:
+    compile_flags: -j$(grep -c ^processor /proc/cpuinfo) CC=/opt/mongodbtoolchain/bin/gcc CXX=/opt/mongodbtoolchain/bin/g++ --release
+    setup: single-replica
+    cluster: single
+    numShard: 0
+    storageEngine: wiredTiger
+
+  run_on:
+    - "linux-64-amzn-perf-longevity"
+  tasks:
+    - name: single_cluster_test
 
 - name: linux-wt-shard
   display_name: Linux WT Shard
@@ -244,7 +244,7 @@ buildvariants:
     compile_flags: -j$(grep -c ^processor /proc/cpuinfo) CC=/opt/mongodbtoolchain/bin/gcc CXX=/opt/mongodbtoolchain/bin/g++ --release
     setup: shard
     cluster: shard
-    numShard: 1
+    numShard: 3
     storageEngine: wiredTiger
 
   run_on:
