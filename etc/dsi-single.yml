@@ -117,7 +117,10 @@ functions:
           set -e
           set -v
           cd ./clusters/${cluster}
+          cat ips.sh
+          cat run-${test}.json
           ./update_run_config.sh
+          cat run-${test}.json
           rm -f ../perf.json
           rm -rf ./reports
           rm -f ../../reports.tgz
