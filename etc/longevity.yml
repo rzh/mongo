@@ -111,7 +111,7 @@ functions:
           rm -f ../../reports.tgz
           echo "Run test for ${test} with setup ${setup}"
           # run test
-          ../../bin/mc -config run-${test}.json -run ${test}-run-${setup} -o perf.json 
+          MC_PER_THREAD_STATS="no" MC_MONITOR_INTERVAL=10 ../../bin/mc -config run-${test}.json -run ${test}-run-${setup} -o perf.json 
           pwd
           ls -la
           ls -la ./reports
