@@ -145,7 +145,7 @@ functions:
     - command: archive.targz_pack
       params:
         target: "reports.tgz"
-        source_dir: "dsi/clusters/shard"
+        source_dir: "dsi/clusters/longevity"
         include:
           - "reports/**"
 
