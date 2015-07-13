@@ -13,13 +13,13 @@ post:
         script: |
           set -e 
           set -o verbose
-          cd ./clusters/single
+          cd ./clusters/${cluster}
           # configure mongodb cluster with wiredTiger
           yes yes | ./terraform destroy
           echo "Cluster DESTROYED."
 
 functions:
-  "bring up cluster":
+  "prepare environment":
     - command: shell.exec
       params:
         script: |
@@ -38,10 +38,10 @@ functions:
           mkdir keys
           mkdir terraform
           cd terraform
-          wget –-quiet --no-check-certificate https://github.com/rzh/dsi/releases/download/t0.5.3/terraform_0.5.3.tar.gz -O - | tar zxv
+          wget -nv –-quiet --no-check-certificate https://github.com/rzh/dsi/releases/download/t0.5.3/terraform_0.5.3.tar.gz -O - | tar zxv
           # install workload wrapper
           cd ../bin
-          wget –-quiet --no-check-certificate https://github.com/rzh/mc/releases/download/r0.0.1/mc.tar.gz -O - | tar zxv
+          wget -nv –-quiet --no-check-certificate https://github.com/rzh/mc/releases/download/r0.0.1/mc.tar.gz -O - | tar zxv
           cd ..
           ls
     - command: shell.exec
@@ -51,28 +51,34 @@ functions:
         working_dir: dsi
         silent: true
         script: |
-          cd ./clusters/single
+          cd ./clusters/${cluster}
           # stage aws credential for terraform
           ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://s3.amazonaws.com/mciupload/dsi/${build_variant}/${revision}/mongod-${build_id}
           # generate aws private key file
           echo "${ec2_pem}" > ../../keys/aws.pem
           chmod 400 ../../keys/aws.pem
+
+  "bring up 3 shard cluster":
     - command: shell.exec
       # bring up the cluster
       params:
         background: false
         working_dir: dsi
+        silent: true
         script: |
-          # to create single mongod EC2 cluster
+          # to create a mongod EC2 cluster
           set -e 
           set -o verbose
-          cd ./clusters/single
+          cd ./clusters/${cluster}
           cp ../../terraform/* .
           # create all resources and instances
-          ./terraform apply
+          ./terraform apply -var="count=3" > t
+          # workaround for failure to bring up all at the same time
+          ./terraform apply -var="count=9" > t
           # this will extract all public and private IP address information
           ./env.sh
           echo "EC2 Cluster STARTED."
+
   "configure mongodb cluster":
     - command: shell.exec
       # bring up the mongod
@@ -82,12 +88,12 @@ functions:
         script: |
           set -e 
           set -o verbose
-          cd ./clusters/single
+          cd ./clusters/${cluster}
           # configure mongodb cluster with wiredTiger
-          ../../bin/config-${setup}.sh mongodb ${storageEngine}
-          echo "Single MongoDB Replica Cluster STARTED."
+          ../../bin/config-${setup}.sh mongodb ${storageEngine} ${numShard}
+          echo "${cluster} MongoDB Replica Cluster STARTED."
           # configure run script
-          ./update_run_config.sh
+          
   "run test":
     - command: shell.exec
       params:
@@ -95,17 +101,29 @@ functions:
         script: |
           set -e
           set -v
-          cd ./clusters/single
-          rm -f ./perf.json
+          cd ./clusters/${cluster}
+          cat ips.sh
+          cat run-${test}.json
+          ./update_run_config.sh
+          cat run-${test}.json
+          rm -f ../perf.json
           rm -rf ./reports
+          rm -f ../../reports.tgz
           echo "Run test for ${test} with setup ${setup}"
           # run test
-          ../../bin/mc -config ${test}.json -run ${test}-run-${setup} -o perf.json 
+          ../../bin/mc -config run-${test}.json -run ${test}-run-${setup} -o perf.json 
+          pwd
+          ls -la
+          ls -la ./reports
+          mv perf.json ..
+          cd ..
+          cat perf.json >> perf_all.json
           echo "Done test for ${test} with setup ${setup}!"
-   #- command: "json.send"
-   #  params:
-   #    name: "dsi"
-   #    file: "src/clusters/single/perf.json"
+    - command: "json.send"
+      params:
+         name: "terraform-testing"
+         file: "dsi/clusters/perf.json"
+
   "destroy cluster":
     - command: shell.exec
       # destroy the cluster
@@ -115,10 +133,34 @@ functions:
         script: |
           set -e 
           set -o verbose
-          cd ./clusters/single
-          # configure mongodb cluster with wiredTiger
+          cd ./clusters/${cluster}
+          # destroy the EC2 cluster
           yes yes | ./terraform destroy
           echo "Cluster DESTROYED."
+          echo "All perf results"
+          cd ..
+          cat perf_all.json | egrep "name|ops_per_sec"
+
+  "make shard cluster log artifact":
+    - command: archive.targz_pack
+      params:
+        target: "reports.tgz"
+        source_dir: "dsi/clusters/shard"
+        include:
+          - "reports/**"
+
+  "upload log file":
+    - command: s3.put
+      params:
+            aws_key: ${aws_key}
+            aws_secret: ${aws_secret}
+            local_file: reports.tgz
+            remote_file: dsi/${build_variant}/${revision}/logs/${test}-${build_id}.${ext|tgz}
+            bucket: mciuploads
+            permissions: public-read
+            content_type: ${content_type|application/x-gzip}
+            display_name: ${test}-longevity-testlog
+
 tasks:
 - name: compile
   commands:
@@ -157,26 +199,33 @@ tasks:
         content_type: ${content_type|application/octet-stream}
         display_name: mongo
 
-- name: single_cluster_test
+- name: shard_cluster_test
   commands:
-    - func: "bring up cluster"
+    - func: "prepare environment"
+    - func: "bring up 3 shard cluster"
     - func: "configure mongodb cluster"
     - func: "run test"
       vars:
-          test: "run-ycsb"
+        test: "ycsb"
+    - func: "make shard cluster log artifact"
+    - func: "upload log file"
+      vars:
+        test: "ycsb"
     - func: "destroy cluster"
 
 buildvariants:
-- name: linux-wt-repl
-  display_name: Linux WT 1-Node ReplSet
+- name: linux-wt-shard
+  display_name: Linux WT Shard
   expansions:
     compile_flags: -j$(grep -c ^processor /proc/cpuinfo) CC=/opt/mongodbtoolchain/bin/gcc CXX=/opt/mongodbtoolchain/bin/g++ --release
-    setup: single-replica
+    setup: shard
+    cluster: longevity
+    numShard: 3
     storageEngine: wiredTiger
 
   run_on:
-    - "ubuntu1404-test"
+    - "linux-64-amzn-perf-longevity"
   tasks:
-    - name: single_cluster_test
+    - name: shard_cluster_test
 
 
