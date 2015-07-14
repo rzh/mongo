@@ -17,6 +17,8 @@ post:
           # configure mongodb cluster with wiredTiger
           yes yes | ./terraform destroy
           echo "Cluster DESTROYED."
+          echo "Test Results: "
+          egrep "name|ops_per_sec" ../perf_all.json
 
 functions:
   "prepare environment":
@@ -154,7 +156,6 @@ functions:
           echo "Cluster DESTROYED."
           echo "All perf results"
           cd ..
-          cat perf_all.json | egrep "name|ops_per_sec"
 
   "make single cluster log artifact":
     - command: archive.targz_pack
