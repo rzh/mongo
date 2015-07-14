@@ -93,6 +93,7 @@ tasks:
         script: |
           set -o errexit
           set -o verbose
+          if [ -e "test_tagged_build.sh" ]; then ./test_tagged_build.sh; fi
           ${scons|scons} ${compile_flags|} mongo
           ${scons|scons} ${compile_flags|} mongod
     - command: s3.put
@@ -114,7 +115,7 @@ tasks:
         bucket: mciuploads
         permissions: public-read
         content_type: ${content_type|application/octet-stream}
-        display_name: mongo
+        display_name: ${test}-log
 
 - name: query
   depends_on:
