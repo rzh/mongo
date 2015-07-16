@@ -14,7 +14,7 @@ post:
           set -e 
           set -o verbose
           cd ./clusters/${cluster}
-          # configure mongodb cluster with wiredTiger
+          # destroy the cluster post test
           yes yes | ./terraform destroy
           echo "Cluster DESTROYED."
 
@@ -26,7 +26,7 @@ functions:
           rm -rf ./*
           mkdir src
     - command: shell.exec
-      # checkout dsi code
+      # checkout and setup DSI environment
       params:
         working_dir: .
         script: |
@@ -78,7 +78,6 @@ functions:
           # configure mongodb cluster with wiredTiger
           ../../bin/config-${setup}.sh mongodb ${storageEngine} ${numShard}
           echo "${cluster} MongoDB Replica Cluster STARTED."
-          # configure run script
           
   "run test":
     - command: shell.exec
@@ -90,7 +89,6 @@ functions:
           cd ./clusters/${cluster}
           # show cluster details
           cat ips.sh
-          cat run-${test}.json
           ./update_run_config.sh
           cat run-${test}.json
           # clean up old artifact from the last test
@@ -103,11 +101,11 @@ functions:
           mv perf.json ..
           cd ..
           cat perf.json >> perf_all.json
-          echo "Done test for ${test} with setup ${setup}!"
+          echo "Complete test for ${test} with setup ${setup}!"
     - command: "json.send"
       params:
-         name: "terraform-testing"
-         file: "dsi/clusters/perf.json"
+          name: "longevity"
+          file: "dsi/clusters/perf.json"
 
   "destroy cluster":
     - command: shell.exec
@@ -127,6 +125,18 @@ functions:
           cat perf_all.json | egrep "name|ops_per_sec"
 
   "make shard cluster log artifact":
+    - command: shell.exec
+      # destroy the cluster
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          set -e 
+          set -o verbose
+          cd ./clusters/${cluster}/reports
+          # move additional file here
+          cp ../ips.sh .
+          cp ../../perf_all.json .
     - command: archive.targz_pack
       params:
         target: "reports.tgz"
