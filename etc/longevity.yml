@@ -16,6 +16,8 @@ post:
           cd ./clusters/${cluster}
           # destroy the cluster post test
           yes yes | ./terraform destroy
+          # clean all file to be safe
+          rm -rf *
           echo "Cluster DESTROYED."
 
 functions:
@@ -45,7 +47,7 @@ functions:
         script: |
           cd ./clusters/${cluster}
           # stage aws credential for terraform
-          ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://s3.amazonaws.com/mciupload/dsi/${build_variant}/${revision}/mongod-${build_id}
+          ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://s3.amazonaws.com/mciupload/longevity/${build_variant}/${revision}/mongod-${build_id}.tar.gz
           # generate aws private key file
           echo "${ec2_pem}" > ../../keys/aws.pem
           chmod 400 ../../keys/aws.pem
@@ -119,6 +121,8 @@ functions:
           cd ./clusters/${cluster}
           # destroy the EC2 cluster
           yes yes | ./terraform destroy
+          # clean all file to be safe
+          rm -rf *
           echo "Cluster DESTROYED."
           echo "All perf results"
           cd ..
@@ -173,26 +177,23 @@ tasks:
           set -o verbose
           ${scons|scons} ${compile_flags|} mongo
           ${scons|scons} ${compile_flags|} mongod
+          ${scons|scons} ${compile_flags|} mongos
+          mkdir -p mongodb/bin
+          mv mongo mongodb/bin
+          mv mongod mongodb/bin
+          mv mongos mongodb/bin
+          tar cvf mongodb.tar mongodb
+          gzip mongodb.tar
     - command: s3.put
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: src/mongod
-        remote_file: dsi/${build_variant}/${revision}/mongod-${build_id}
+        local_file: src/mongodb.tar.gz
+        remote_file: longevity/${build_variant}/${revision}/mongodb-${build_id}.tar.gz
         bucket: mciuploads
         permissions: public-read
-        content_type: ${content_type|application/octet-stream}
-        display_name: mongod
-    - command: s3.put
-      params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        local_file: src/mongo
-        remote_file: dsi/${build_variant}/${revision}/mongo-${build_id}
-        bucket: mciuploads
-        permissions: public-read
-        content_type: ${content_type|application/octet-stream}
-        display_name: mongo
+        content_type: ${content_type|application/x-gzip}
+        display_name: mongodb.tar.gz
 
 - name: shard_cluster_test
   depends_on:
@@ -224,10 +225,10 @@ buildvariants:
   run_on:
     - "linux-64-amzn-perf-longevity"
   tasks:
+    - name: compile
+      distros:
+      - rhel55
     - name: shard_cluster_test
 
 
-      #    - name: compile
-      #distros:
-      #- rhel55
 
