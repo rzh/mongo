@@ -175,9 +175,7 @@ tasks:
         script: |
           set -o errexit
           set -o verbose
-          ${scons|scons} ${compile_flags|} mongo
-          ${scons|scons} ${compile_flags|} mongod
-          ${scons|scons} ${compile_flags|} mongos
+          ${scons|scons} ${compile_flags|} mongo mongod mongos
           mkdir -p mongodb/bin
           mv mongo mongodb/bin
           mv mongod mongodb/bin
