@@ -47,7 +47,7 @@ functions:
         script: |
           cd ./clusters/${cluster}
           # stage aws credential for terraform
-          ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://s3.amazonaws.com/mciupload/longevity/${build_variant}/${revision}/mongod-${build_id}.tar.gz
+          ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://s3.amazonaws.com/mciupload/longevity/${build_variant}/${revision}/mongodb-${build_id}.tar.gz
           # generate aws private key file
           echo "${ec2_pem}" > ../../keys/aws.pem
           chmod 400 ../../keys/aws.pem
@@ -106,7 +106,7 @@ functions:
           echo "Complete test for ${test} with setup ${setup}!"
     - command: "json.send"
       params:
-          name: "longevity"
+          name: "perf"
           file: "dsi/clusters/perf.json"
 
   "destroy cluster":
@@ -176,6 +176,10 @@ tasks:
           set -o errexit
           set -o verbose
           ${scons|scons} ${compile_flags|} mongo mongod mongos
+          # strip binaries here
+          strip mongo
+          strip mongos
+          strip mongod
           mkdir -p mongodb/bin
           mv mongo mongodb/bin
           mv mongod mongodb/bin
