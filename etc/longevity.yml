@@ -108,7 +108,7 @@ functions:
     - command: "json.send"
       params:
           name: "perf"
-          file: "longevity/clusters/perf.json"
+          file: "dsi/clusters/perf.json"
 
   "destroy cluster":
     - command: shell.exec
