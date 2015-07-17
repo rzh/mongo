@@ -228,5 +228,3 @@ buildvariants:
       - rhel55
     - name: shard_cluster_test
 
-
-
