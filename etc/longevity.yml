@@ -64,7 +64,7 @@ functions:
           set -e 
           set -o verbose
           cd ./clusters/${cluster}
-          echo https://s3.amazonaws.com/mciuploads/longevity/linux-wt-shard/5a1caa1cd655ca94896078c14b8e93c09594bcf8/mongodb-longevity_linux_wt_shard_5a1caa1cd655ca94896078c14b8e93c09594bcf8_15_07_17_06_02_03.tar.gz
+          echo "mongodb url: https://s3.amazonaws.com/mciupload/longevity/${build_variant}/${revision}/mongodb-${build_id}.tar.gz"
           ./setup-cluster.sh
           echo "EC2 Cluster STARTED."
 
@@ -108,7 +108,7 @@ functions:
     - command: "json.send"
       params:
           name: "perf"
-          file: "dsi/clusters/perf.json"
+          file: "longevity/clusters/perf.json"
 
   "destroy cluster":
     - command: shell.exec
@@ -155,7 +155,7 @@ functions:
             aws_key: ${aws_key}
             aws_secret: ${aws_secret}
             local_file: reports.tgz
-            remote_file: dsi/${build_variant}/${revision}/logs/${test}-${build_id}.${ext|tgz}
+            remote_file: longevity/${build_variant}/${revision}/logs/${test}-${build_id}.${ext|tgz}
             bucket: mciuploads
             permissions: public-read
             content_type: ${content_type|application/x-gzip}
