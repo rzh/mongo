@@ -64,6 +64,7 @@ functions:
           set -e 
           set -o verbose
           cd ./clusters/${cluster}
+          echo https://s3.amazonaws.com/mciuploads/longevity/linux-wt-shard/5a1caa1cd655ca94896078c14b8e93c09594bcf8/mongodb-longevity_linux_wt_shard_5a1caa1cd655ca94896078c14b8e93c09594bcf8_15_07_17_06_02_03.tar.gz
           ./setup-cluster.sh
           echo "EC2 Cluster STARTED."
 
