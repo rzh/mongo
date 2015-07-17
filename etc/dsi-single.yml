@@ -40,10 +40,10 @@ functions:
           mkdir keys
           mkdir terraform
           cd terraform
-          wget -nv –-quiet --no-check-certificate https://github.com/rzh/dsi/releases/download/t0.5.3/terraform_0.5.3.tar.gz -O - | tar zxv
+          wget -nv --no-check-certificate https://github.com/rzh/dsi/releases/download/t0.5.3/terraform_0.5.3.tar.gz -O - | tar zxv
           # install workload wrapper
           cd ../bin
-          wget -nv –-quiet --no-check-certificate https://github.com/rzh/mc/releases/download/r0.0.1/mc.tar.gz -O - | tar zxv
+          wget -nv --no-check-certificate https://github.com/rzh/mc/releases/download/r0.0.1/mc.tar.gz -O - | tar zxv
           cd ..
           ls
     - command: shell.exec
@@ -139,7 +139,7 @@ functions:
           echo "Done test for ${test} with setup ${setup}!"
     - command: "json.send"
       params:
-         name: "terraform-testing"
+         name: "perf"
          file: "dsi/clusters/perf.json"
 
   "destroy cluster":
@@ -277,5 +277,6 @@ buildvariants:
     - "linux-64-amzn-perf-longevity"
   tasks:
     - name: shard_cluster_test
+
 
 
