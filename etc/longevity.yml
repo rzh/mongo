@@ -6,7 +6,7 @@ pre:
 post:
     - command: shell.cleanup
     - command: shell.exec
-      # destroy the cluster
+      # destroy the cluster after the test is done
       params:
         background: false
         working_dir: dsi
@@ -64,9 +64,8 @@ functions:
           set -e 
           set -o verbose
           cd ./clusters/${cluster}
-          echo "mongodb url: https://s3.amazonaws.com/mciuploads/longevity/${build_variant}/${revision}/mongodb-${build_id}.tar.gz"
           ./setup-cluster.sh
-          echo "EC2 Cluster STARTED."
+          echo "EC2 Cluster CREATED."
 
   "configure mongodb cluster":
     - command: shell.exec
@@ -80,7 +79,7 @@ functions:
           cd ./clusters/${cluster}
           # configure mongodb cluster with wiredTiger
           ../../bin/config-${setup}.sh mongodb ${storageEngine} ${numShard}
-          echo "${cluster} MongoDB Replica Cluster STARTED."
+          echo "${cluster} MongoDB Cluster STARTED."
           
   "run test":
     - command: shell.exec
@@ -224,7 +223,6 @@ buildvariants:
     numShard: 3
     storageEngine: wiredTiger
 
-
   run_on:
     - "linux-64-amzn-perf-longevity"
   tasks:
@@ -232,7 +230,4 @@ buildvariants:
       distros:
       - rhel55
     - name: shard_cluster_test
-
-
-
 
