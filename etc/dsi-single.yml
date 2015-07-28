@@ -34,18 +34,10 @@ functions:
         script: |
           set -e 
           set -v
-          git clone https://github.com/rzh/dsi
+          git clone https://github.com/10gen/dsi
           cd dsi
-          # install terraform
-          mkdir keys
-          mkdir terraform
-          cd terraform
-          wget -nv --no-check-certificate https://github.com/rzh/dsi/releases/download/t0.5.3/terraform_0.5.3.tar.gz -O - | tar zxv
-          # install workload wrapper
-          cd ../bin
-          wget -nv --no-check-certificate https://github.com/rzh/mc/releases/download/r0.0.1/mc.tar.gz -O - | tar zxv
-          cd ..
-          ls
+          # setup execution environment
+          ./bin/setup-dsi-env.sh
     - command: shell.exec
       # configure environment, has private information, no logging
       params:
@@ -55,8 +47,7 @@ functions:
         script: |
           cd ./clusters/${cluster}
           # stage aws credential for terraform
-          # ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://s3.amazonaws.com/mciupload/dsi/${build_variant}/${revision}/mongodb-${build_id}.tar.gz
-          ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.1.5.tgz
+          ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.1.4.tgz
           # generate aws private key file
           echo "${ec2_pem}" > ../../keys/aws.pem
           chmod 400 ../../keys/aws.pem
@@ -72,13 +63,9 @@ functions:
           set -e 
           set -o verbose
           cd ./clusters/${cluster}
-          cp ../../terraform/* .
           # create all resources and instances
-          echo "mongodb url: https://s3.amazonaws.com/mciupload/dsi/${build_variant}/${revision}/mongodb-${build_id}.tar.gz"
-          ./terraform apply 
-          # this will extract all public and private IP address information
-          ./env.sh
-          echo "EC2 Cluster STARTED."
+          ./setup-cluster.sh
+          echo "EC2 Cluster CREATED."
   "bring up 3 shard cluster":
     - command: shell.exec
       # bring up the cluster
@@ -112,7 +99,6 @@ functions:
           # configure mongodb cluster with wiredTiger
           ../../bin/config-${setup}.sh mongodb ${storageEngine} ${numShard}
           echo "${cluster} MongoDB Replica Cluster STARTED."
-          # configure run script
   "run test":
     - command: shell.exec
       params:
@@ -130,10 +116,7 @@ functions:
           rm -f ../../reports.tgz
           echo "Run test for ${test} with setup ${setup}"
           # run test
-          ../../bin/mc -config run-${test}.json -run ${test}-run-${setup} -o perf.json 
-          pwd
-          ls -la
-          ls -la ./reports
+          ./run-${test}.sh
           mv perf.json ..
           cd ..
           cat perf.json >> perf_all.json
@@ -160,6 +143,17 @@ functions:
           cd ..
 
   "make single cluster log artifact":
+    - command: shell.exec
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          set -e 
+          set -o verbose
+          cd ./clusters/${cluster}/reports
+          # move additional file here
+          cp ../ips.sh .
+          cp ../../perf_all.json .
     - command: archive.targz_pack
       params:
         target: "reports.tgz"
@@ -168,6 +162,17 @@ functions:
           - "reports/**"
 
   "make shard cluster log artifact":
+    - command: shell.exec
+      params:
+        background: false
+        working_dir: dsi
+        script: |
+          set -e 
+          set -o verbose
+          cd ./clusters/${cluster}/reports
+          # move additional file here
+          cp ../ips.sh .
+          cp ../../perf_all.json .
     - command: archive.targz_pack
       params:
         target: "reports.tgz"
@@ -185,7 +190,7 @@ functions:
             bucket: mciuploads
             permissions: public-read
             content_type: ${content_type|application/x-gzip}
-            display_name: ${test}-log
+            display_name: test-log
 
 tasks:
 - name: compile
@@ -239,7 +244,7 @@ tasks:
 - name: shard_cluster_test
   commands:
     - func: "prepare environment"
-    - func: "bring up 3 shard cluster"
+    - func: "bring up cluster"
     - func: "configure mongodb cluster"
     - func: "run test"
       vars:
@@ -278,6 +283,7 @@ buildvariants:
     - "linux-64-amzn-perf-longevity"
   tasks:
     - name: shard_cluster_test
+
 
 
 
