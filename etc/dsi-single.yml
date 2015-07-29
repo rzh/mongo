@@ -47,7 +47,7 @@ functions:
         script: |
           cd ./clusters/${cluster}
           # stage aws credential for terraform
-          ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.1.4.tgz
+          ../../bin/make_terraform_env.sh ${terraform_key} ${terraform_secret} https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.1.6.tgz
           # generate aws private key file
           echo "${ec2_pem}" > ../../keys/aws.pem
           chmod 400 ../../keys/aws.pem
@@ -285,6 +285,7 @@ buildvariants:
     - "linux-64-amzn-perf-longevity"
   tasks:
     - name: shard_cluster_test
+
 
 
 
