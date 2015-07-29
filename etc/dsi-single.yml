@@ -19,6 +19,7 @@ post:
           echo "Cluster DESTROYED."
           echo "Test Results: "
           egrep "name|ops_per_sec" ../perf_all.json
+          grep "bw" ./terraform.log
 
 functions:
   "prepare environment":
@@ -285,6 +286,7 @@ buildvariants:
     - "linux-64-amzn-perf-longevity"
   tasks:
     - name: shard_cluster_test
+
 
 
 
