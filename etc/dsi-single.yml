@@ -153,6 +153,7 @@ functions:
           cd ./clusters/${cluster}/reports
           # move additional file here
           cp ../ips.sh .
+          cp ../terraform.log .
           cp ../../perf_all.json .
     - command: archive.targz_pack
       params:
@@ -172,6 +173,7 @@ functions:
           cd ./clusters/${cluster}/reports
           # move additional file here
           cp ../ips.sh .
+          cp ../terraform.log .
           cp ../../perf_all.json .
     - command: archive.targz_pack
       params:
@@ -283,6 +285,7 @@ buildvariants:
     - "linux-64-amzn-perf-longevity"
   tasks:
     - name: shard_cluster_test
+
 
 
 
