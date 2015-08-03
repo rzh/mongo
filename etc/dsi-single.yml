@@ -19,7 +19,6 @@ post:
           echo "Cluster DESTROYED."
           echo "Test Results: "
           egrep "name|ops_per_sec" ../perf_all.json
-          grep "bw" ./terraform.log
 
 functions:
   "prepare environment":
@@ -75,7 +74,7 @@ functions:
         working_dir: dsi
         silent: true
         script: |
-          # to create a mongod EC2 cluster
+          # create a mongod EC2 cluster
           set -e 
           set -o verbose
           cd ./clusters/${cluster}
@@ -98,7 +97,7 @@ functions:
           set -o verbose
           cd ./clusters/${cluster}
           # configure mongodb cluster with wiredTiger
-          ../../bin/config-${setup}.sh mongodb ${storageEngine} ${numShard}
+          ../../bin/config-${setup}.sh mongodb ${storageEngine} ${numShard} ${test}
           echo "${cluster} MongoDB Replica Cluster STARTED."
   "run test":
     - command: shell.exec
@@ -193,7 +192,7 @@ functions:
             bucket: mciuploads
             permissions: public-read
             content_type: ${content_type|application/x-gzip}
-            display_name: test-log
+            display_name: ${test}-test-log
 
 tasks:
 - name: compile
@@ -235,6 +234,8 @@ tasks:
     - func: "prepare environment"
     - func: "bring up cluster"
     - func: "configure mongodb cluster"
+      vars:
+        test: "ycsb"
     - func: "run test"
       vars:
         test: "ycsb"
@@ -242,6 +243,16 @@ tasks:
     - func: "upload log file"
       vars:
         test: "ycsb"
+    - func: "configure mongodb cluster"
+      vars:
+        test: "hammer"
+    - func: "run test"
+      vars:
+        test: "hammer"
+    - func: "make single cluster log artifact"
+    - func: "upload log file"
+      vars:
+        test: "hammer"
     - func: "destroy cluster"
 
 - name: shard_cluster_test
@@ -249,6 +260,8 @@ tasks:
     - func: "prepare environment"
     - func: "bring up cluster"
     - func: "configure mongodb cluster"
+      vars:
+        test: "ycsb"
     - func: "run test"
       vars:
         test: "ycsb"
@@ -256,6 +269,16 @@ tasks:
     - func: "upload log file"
       vars:
         test: "ycsb"
+    - func: "configure mongodb cluster"
+      vars:
+        test: "hammer"
+    - func: "run test"
+      vars:
+        test: "hammer"
+    - func: "make shard cluster log artifact"
+    - func: "upload log file"
+      vars:
+        test: "hammer"
     - func: "destroy cluster"
 
 buildvariants:
@@ -286,6 +309,7 @@ buildvariants:
     - "linux-64-amzn-perf-longevity"
   tasks:
     - name: shard_cluster_test
+
 
 
 
