@@ -108,9 +108,7 @@ functions:
           set -v
           cd ./clusters/${cluster}
           cat ips.sh
-          cat run-${test}.json
           ./update_run_config.sh
-          cat run-${test}.json
           rm -f ../perf.json
           rm -rf ./reports
           rm -f ../../reports.tgz
@@ -309,6 +307,7 @@ buildvariants:
     - "linux-64-amzn-perf-longevity"
   tasks:
     - name: shard_cluster_test
+
 
 
 
